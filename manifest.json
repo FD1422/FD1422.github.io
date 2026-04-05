@@ -1,0 +1,18 @@
+{
+  "name": "Fedya | Galaxy Explorer",
+  "short_name": "FD-1422",
+  "description": "Fedya's Star Wars Galaxy Explorer - Age 12, Gamer, Space Enthusiast",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#00d4ff",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
