@@ -548,21 +548,35 @@ class Ship {
       }
     }
 
-    // Rotate
-    if (input.left)  this.angle -= this.rotSpeed * dt;
-    if (input.right) this.angle += this.rotSpeed * dt;
-
-    // Thrust
-    this._thrustOn = input.up;
-    if (input.up) {
-      this.vx += Math.sin(this.angle) * this.speed * dt;
-      this.vy -= Math.cos(this.angle) * this.speed * dt;
-    }
-
-    // Brake
-    if (input.down) {
-      this.vx *= Math.pow(0.05, dt);
-      this.vy *= Math.pow(0.05, dt);
+    if (input.hasTarget) {
+      // Touch-to-fly: rotate toward touch point, thrust automatically
+      const dx = input.targetX - this.x;
+      const dy = input.targetY - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const targetAngle = Math.atan2(dx, -dy);
+      // Shortest-path rotation
+      let diff = ((targetAngle - this.angle) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+      const maxRot = this.rotSpeed * 2.2 * dt;
+      this.angle += Math.max(-maxRot, Math.min(maxRot, diff));
+      // Thrust toward target — stop when within 30px to avoid orbiting
+      this._thrustOn = dist > 30;
+      if (this._thrustOn) {
+        this.vx += Math.sin(this.angle) * this.speed * dt;
+        this.vy -= Math.cos(this.angle) * this.speed * dt;
+      }
+    } else {
+      // Keyboard controls
+      if (input.left)  this.angle -= this.rotSpeed * dt;
+      if (input.right) this.angle += this.rotSpeed * dt;
+      this._thrustOn = input.up;
+      if (input.up) {
+        this.vx += Math.sin(this.angle) * this.speed * dt;
+        this.vy -= Math.cos(this.angle) * this.speed * dt;
+      }
+      if (input.down) {
+        this.vx *= Math.pow(0.05, dt);
+        this.vy *= Math.pow(0.05, dt);
+      }
     }
 
     // Drag
@@ -676,48 +690,94 @@ class Ship {
     ctx.rotate(this.angle);
 
     const flash = this._invincible > 0 && Math.sin(this._invincible * 30) > 0;
-    const alpha = flash ? 0.4 : 1.0;
+    const alpha = flash ? 0.35 : 1.0;
     ctx.globalAlpha = alpha;
 
-    // Shield ring
-    if (this.upgrades.shield > 0 || this.fx.double > 0) {
-      ctx.save();
-      ctx.strokeStyle = this.fx.double > 0 ? '#ffd700' : '#4488ff';
-      ctx.lineWidth = 1.5;
-      ctx.globalAlpha = alpha * 0.5;
+    const c      = this.isRemote ? '#ff8800' : '#00d4ff';
+    const cGlow  = this.isRemote ? '#ff6600' : '#00ffff';
+    const cFill  = this.isRemote ? 'rgba(255,140,0,0.18)' : 'rgba(0,220,255,0.18)';
+
+    // ── Engine flames (drawn first, behind hull) ──────────────
+    if (this._thrustOn) {
+      const flare = Math.random();
+      ctx.shadowBlur  = 22;
+      ctx.shadowColor = '#ff7700';
+      // Left nacelle flame
+      ctx.fillStyle = `rgba(255,${110 + Math.round(flare*80)},0,0.9)`;
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
+      ctx.moveTo(-6, 14); ctx.lineTo(-3, 14);
+      ctx.lineTo(-4.5, 26 + flare * 10);
+      ctx.closePath(); ctx.fill();
+      // Right nacelle flame
+      ctx.beginPath();
+      ctx.moveTo(3, 14); ctx.lineTo(6, 14);
+      ctx.lineTo(4.5, 26 + flare * 10);
+      ctx.closePath(); ctx.fill();
+      // Central afterburner
+      ctx.fillStyle = `rgba(255,200,80,0.6)`;
+      ctx.beginPath();
+      ctx.moveTo(-3, 14); ctx.lineTo(3, 14);
+      ctx.lineTo(0, 20 + flare * 6);
+      ctx.closePath(); ctx.fill();
     }
 
-    // Ship body (triangle)
-    const c = this.isRemote ? '#ff8800' : '#00ffff';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = c;
+    // ── Main hull ─────────────────────────────────────────────
+    ctx.shadowBlur  = 12;
+    ctx.shadowColor = cGlow;
     ctx.strokeStyle = c;
-    ctx.fillStyle = c + '33';
-    ctx.lineWidth = 2;
+    ctx.fillStyle   = cFill;
+    ctx.lineWidth   = 1.8;
     ctx.beginPath();
-    ctx.moveTo(0, -18);
-    ctx.lineTo(12, 12);
-    ctx.lineTo(0, 6);
-    ctx.lineTo(-12, 12);
+    ctx.moveTo(0, -22);          // nose
+    ctx.lineTo(6,  -8);          // right shoulder
+    ctx.lineTo(20,  4);          // right wing outer tip
+    ctx.lineTo(12,  8);          // right wing trailing edge
+    ctx.lineTo(6,  16);          // right nacelle outer
+    ctx.lineTo(3,  14);          // right nacelle inner
+    ctx.lineTo(0,  10);          // tail centre
+    ctx.lineTo(-3,  14);         // left nacelle inner
+    ctx.lineTo(-6,  16);         // left nacelle outer
+    ctx.lineTo(-12,  8);         // left wing trailing edge
+    ctx.lineTo(-20,  4);         // left wing outer tip
+    ctx.lineTo(-6,  -8);         // left shoulder
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Engine glow
-    if (this._thrustOn) {
-      ctx.shadowBlur = 18;
-      ctx.shadowColor = '#ff8800';
-      ctx.fillStyle = '#ff8800';
+    // ── Wing accent lines ─────────────────────────────────────
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.strokeStyle = cGlow;
+    ctx.lineWidth   = 1;
+    // Right wing line
+    ctx.beginPath();
+    ctx.moveTo(6, -4); ctx.lineTo(18, 4); ctx.stroke();
+    // Left wing line
+    ctx.beginPath();
+    ctx.moveTo(-6, -4); ctx.lineTo(-18, 4); ctx.stroke();
+
+    // ── Cockpit ──────────────────────────────────────────────
+    ctx.globalAlpha = alpha;
+    ctx.shadowBlur  = 8;
+    ctx.shadowColor = '#aaffff';
+    ctx.fillStyle   = 'rgba(180,245,255,0.75)';
+    ctx.strokeStyle = 'rgba(220,255,255,0.9)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 3.5, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // ── Shield / double-score ring ────────────────────────────
+    if (this.upgrades.shield > 0 || this.fx.double > 0) {
+      ctx.globalAlpha = alpha * 0.45;
+      ctx.shadowBlur  = 10;
+      ctx.strokeStyle = this.fx.double > 0 ? '#ffd700' : '#4499ff';
+      ctx.shadowColor = this.fx.double > 0 ? '#ffd700' : '#4499ff';
+      ctx.lineWidth   = 1.5;
       ctx.beginPath();
-      ctx.moveTo(-6, 8);
-      ctx.lineTo(6, 8);
-      ctx.lineTo(0, 18 + Math.random() * 6);
-      ctx.closePath();
-      ctx.fill();
+      ctx.arc(0, 0, this.radius + 7, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
     ctx.restore();
@@ -1628,138 +1688,127 @@ class UIRenderer {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   12. TOUCH CONTROLS
+   12. TOUCH CONTROLS  —  tap-to-fly system
+   Single touch anywhere: ship flies toward that point + auto-fires.
    ═══════════════════════════════════════════════════════════════ */
 class TouchControls {
   constructor(canvas) {
     this._canvas = canvas;
-    this._joystickActive = false;
-    this._joystickBase = { x: 0, y: 0 };
-    this._joystickPos = { x: 0, y: 0 };
-    this._joystickId = null;
-    this._shootId = null;
-    this.input = { up: false, down: false, left: false, right: false, shoot: false };
-    this._visible = false;
+    this._touchId = null;
+    this._rawX = 0;
+    this._rawY = 0;
+    this.input = { up: false, down: false, left: false, right: false,
+                   shoot: false, hasTarget: false, targetX: 0, targetY: 0 };
     this._setupEvents();
   }
 
   _setupEvents() {
     const c = this._canvas;
-    c.addEventListener('touchstart', e => this._onStart(e), { passive: false });
-    c.addEventListener('touchmove',  e => this._onMove(e),  { passive: false });
-    c.addEventListener('touchend',   e => this._onEnd(e),   { passive: false });
-    c.addEventListener('touchcancel',e => this._onEnd(e),   { passive: false });
+    c.addEventListener('touchstart',  e => this._onStart(e),  { passive: false });
+    c.addEventListener('touchmove',   e => this._onMove(e),   { passive: false });
+    c.addEventListener('touchend',    e => this._onEnd(e),    { passive: false });
+    c.addEventListener('touchcancel', e => this._onEnd(e),    { passive: false });
   }
 
   _getPos(touch) {
     const rect = this._canvas.getBoundingClientRect();
     return {
-      x: (touch.clientX - rect.left) * (this._canvas.width / rect.width),
-      y: (touch.clientY - rect.top) * (this._canvas.height / rect.height),
+      x: (touch.clientX - rect.left) * (this._canvas.width  / rect.width),
+      y: (touch.clientY - rect.top)  * (this._canvas.height / rect.height),
     };
   }
 
   _onStart(e) {
     e.preventDefault();
-    this._visible = true;
-    const W = this._canvas.width;
-    for (const touch of e.changedTouches) {
-      const pos = this._getPos(touch);
-      if (pos.x < W / 2 && this._joystickId === null) {
-        this._joystickId = touch.identifier;
-        this._joystickBase = { ...pos };
-        this._joystickPos = { ...pos };
-        this._joystickActive = true;
-      } else if (pos.x >= W / 2 && this._shootId === null) {
-        this._shootId = touch.identifier;
-        this.input.shoot = true;
-      }
+    if (this._touchId === null) {
+      const t = e.changedTouches[0];
+      this._touchId = t.identifier;
+      const pos = this._getPos(t);
+      this._rawX = pos.x;
+      this._rawY = pos.y;
+      this.input.hasTarget = true;
+      this.input.targetX   = pos.x;
+      this.input.targetY   = pos.y;
+      this.input.shoot     = true;
     }
-    this._updateJoystickInput();
   }
 
   _onMove(e) {
     e.preventDefault();
-    for (const touch of e.changedTouches) {
-      if (touch.identifier === this._joystickId) {
-        this._joystickPos = this._getPos(touch);
+    for (const t of e.changedTouches) {
+      if (t.identifier === this._touchId) {
+        const pos = this._getPos(t);
+        this._rawX = pos.x;
+        this._rawY = pos.y;
+        this.input.targetX = pos.x;
+        this.input.targetY = pos.y;
       }
     }
-    this._updateJoystickInput();
   }
 
   _onEnd(e) {
     e.preventDefault();
-    for (const touch of e.changedTouches) {
-      if (touch.identifier === this._joystickId) {
-        this._joystickId = null;
-        this._joystickActive = false;
-        this._joystickPos = { ...this._joystickBase };
-        this.input.up = false; this.input.down = false;
-        this.input.left = false; this.input.right = false;
-      }
-      if (touch.identifier === this._shootId) {
-        this._shootId = null;
-        this.input.shoot = false;
+    for (const t of e.changedTouches) {
+      if (t.identifier === this._touchId) {
+        this._touchId        = null;
+        this.input.hasTarget = false;
+        this.input.shoot     = false;
       }
     }
   }
 
-  _updateJoystickInput() {
-    if (!this._joystickActive) return;
-    const dx = this._joystickPos.x - this._joystickBase.x;
-    const dy = this._joystickPos.y - this._joystickBase.y;
-    const deadzone = 12;
-    this.input.left  = dx < -deadzone;
-    this.input.right = dx >  deadzone;
-    this.input.up    = dy < -deadzone;
-    this.input.down  = dy >  deadzone;
-  }
-
+  // Draw crosshair / ripple at touch point during gameplay
   draw(ctx) {
-    if (!this._visible || !this._joystickActive) return;
+    if (!this.input.hasTarget) return;
+    const x = this._rawX;
+    const y = this._rawY;
+    const now = Date.now() * 0.003;
     ctx.save();
-    const base = this._joystickBase;
-    const pos  = this._joystickPos;
-    const R = 48, r = 22;
-
-    // Base ring
-    ctx.strokeStyle = 'rgba(0,200,255,0.35)';
-    ctx.lineWidth = 2;
+    // Expanding ripple rings
+    for (let i = 0; i < 3; i++) {
+      const r   = 14 + i * 10 + (now % 1) * 10;
+      const al  = Math.max(0, 0.45 - i * 0.12 - (now % 1) * 0.18);
+      ctx.globalAlpha  = al;
+      ctx.strokeStyle  = '#00ffff';
+      ctx.lineWidth    = 1.5 - i * 0.35;
+      ctx.shadowBlur   = 6;
+      ctx.shadowColor  = '#00ffff';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Crosshair lines
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth   = 1.5;
+    ctx.shadowBlur  = 8;
+    ctx.shadowColor = '#00ffff';
+    const g = 7;
     ctx.beginPath();
-    ctx.arc(base.x, base.y, R, 0, Math.PI * 2);
+    ctx.moveTo(x - g - 5, y); ctx.lineTo(x - g + 1, y);
+    ctx.moveTo(x + g - 1, y); ctx.lineTo(x + g + 5, y);
+    ctx.moveTo(x, y - g - 5); ctx.lineTo(x, y - g + 1);
+    ctx.moveTo(x, y + g - 1); ctx.lineTo(x, y + g + 5);
     ctx.stroke();
-
-    // Thumb
-    ctx.fillStyle = 'rgba(0,200,255,0.45)';
-    ctx.strokeStyle = 'rgba(0,200,255,0.8)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Shoot button hint
-    ctx.fillStyle = 'rgba(255,100,0,0.25)';
-    ctx.strokeStyle = 'rgba(255,100,0,0.6)';
-    ctx.lineWidth = 2;
-    const W = this._canvas.width;
-    const H = this._canvas.height;
-    ctx.beginPath();
-    ctx.arc(W * 0.8, H * 0.75, 44, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,180,50,0.85)';
-    ctx.font = 'bold 13px Orbitron, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('FIRE', W * 0.8, H * 0.75);
-    ctx.textBaseline = 'alphabetic';
-
     ctx.restore();
   }
 
-  // Pulsing tap-to-start / tap-to-restart button for touch devices
+  // Faint hint shown during gameplay when no touch active
+  drawZoneHints(ctx) {
+    if (!('ontouchstart' in window)) return;
+    if (this.input.hasTarget) return;
+    const W = this._canvas.width;
+    const H = this._canvas.height;
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle   = '#00d4ff';
+    ctx.font        = `bold ${Math.round(W * 0.028)}px Orbitron, sans-serif`;
+    ctx.textAlign   = 'center';
+    ctx.fillText('TAP & HOLD TO FLY  ·  AUTO-FIRE ON', W / 2, H * 0.94);
+    ctx.restore();
+  }
+
+  // Pulsing tap prompt for start / gameover screens
   drawTapPrompt(ctx, label) {
     if (!('ontouchstart' in window)) return;
     const W = this._canvas.width;
@@ -1768,88 +1817,39 @@ class TouchControls {
     const pulse = 0.55 + 0.45 * Math.sin(Date.now() * 0.004);
     const bw = Math.min(280, W * 0.72), bh = 58;
     const bx = W / 2 - bw / 2, by = H - 100;
-    const r = 14;
+    const r  = 14;
     ctx.globalAlpha = 0.45 + 0.45 * pulse;
-    ctx.fillStyle = 'rgba(0,200,255,0.18)';
+    ctx.fillStyle   = 'rgba(0,200,255,0.18)';
     ctx.strokeStyle = '#00d4ff';
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 18 * pulse;
+    ctx.lineWidth   = 2;
+    ctx.shadowBlur  = 18 * pulse;
     ctx.shadowColor = '#00d4ff';
     ctx.beginPath();
     ctx.moveTo(bx + r, by);
     ctx.lineTo(bx + bw - r, by);
-    ctx.arcTo(bx + bw, by, bx + bw, by + r, r);
+    ctx.arcTo(bx + bw, by,      bx + bw, by + r,      r);
     ctx.lineTo(bx + bw, by + bh - r);
     ctx.arcTo(bx + bw, by + bh, bx + bw - r, by + bh, r);
     ctx.lineTo(bx + r, by + bh);
-    ctx.arcTo(bx, by + bh, bx, by + bh - r, r);
+    ctx.arcTo(bx,      by + bh, bx, by + bh - r,      r);
     ctx.lineTo(bx, by + r);
-    ctx.arcTo(bx, by, bx + r, by, r);
+    ctx.arcTo(bx,      by,      bx + r, by,            r);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
     ctx.globalAlpha = 0.7 + 0.3 * pulse;
-    ctx.fillStyle = '#00d4ff';
-    ctx.font = `bold ${Math.round(bw * 0.075)}px Orbitron, sans-serif`;
-    ctx.textAlign = 'center';
+    ctx.fillStyle   = '#00d4ff';
+    ctx.font        = `bold ${Math.round(bw * 0.075)}px Orbitron, sans-serif`;
+    ctx.textAlign   = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, W / 2, by + bh / 2);
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur   = 0;
     ctx.textBaseline = 'alphabetic';
     ctx.restore();
   }
 
-  // Faint zone guide drawn during gameplay when joystick is idle
-  drawZoneHints(ctx) {
-    if (!('ontouchstart' in window)) return;
-    if (this._joystickActive) return;
-    const W = this._canvas.width;
-    const H = this._canvas.height;
-    ctx.save();
-    ctx.globalAlpha = 0.13;
-    // centre divider
-    ctx.strokeStyle = '#00d4ff';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 8]);
-    ctx.beginPath();
-    ctx.moveTo(W / 2, H * 0.12);
-    ctx.lineTo(W / 2, H * 0.88);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // labels
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = '#00d4ff';
-    ctx.font = `bold ${Math.round(W * 0.033)}px Orbitron, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('MOVE', W * 0.25, H * 0.93);
-    ctx.fillStyle = '#ff8800';
-    ctx.fillText('FIRE', W * 0.75, H * 0.93);
-    ctx.restore();
-  }
-
-  drawShootButton(ctx) {
-    // Static shoot button (always visible on touch devices)
-    if (!('ontouchstart' in window)) return;
-    const W = this._canvas.width;
-    const H = this._canvas.height;
-    ctx.save();
-    const alpha = this._shootId !== null ? 0.7 : 0.3;
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = 'rgba(255,100,0,0.4)';
-    ctx.strokeStyle = '#ff8800';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(W * 0.8, H * 0.75, 44, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#ffcc44';
-    ctx.font = 'bold 13px Orbitron, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('FIRE', W * 0.8, H * 0.75);
-    ctx.textBaseline = 'alphabetic';
-    ctx.restore();
-  }
+  // No longer needed — kept as no-op for compatibility
+  drawShootButton(ctx) {}
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1901,7 +1901,7 @@ class SpaceGame {
 
     // Keyboard input
     this._keys = {};
-    this._input = { up: false, down: false, left: false, right: false, shoot: false };
+    this._input = { up: false, down: false, left: false, right: false, shoot: false, hasTarget: false, targetX: 0, targetY: 0 };
 
     // Event system
     this._handlers = {};
@@ -2440,13 +2440,17 @@ class SpaceGame {
       right: !!(k['ArrowRight'] || k['d'] || k['D']),
       shoot: !!(k[' '] || k['Space']),
     };
-    // Merge touch
     const t = this._touch.input;
-    this._input.up    = kb.up    || t.up;
-    this._input.down  = kb.down  || t.down;
-    this._input.left  = kb.left  || t.left;
-    this._input.right = kb.right || t.right;
+    // Keyboard directional — only active when no touch target
+    this._input.up    = kb.up    || (!t.hasTarget && t.up);
+    this._input.down  = kb.down  || (!t.hasTarget && t.down);
+    this._input.left  = kb.left  || (!t.hasTarget && t.left);
+    this._input.right = kb.right || (!t.hasTarget && t.right);
     this._input.shoot = kb.shoot || t.shoot;
+    // Touch-to-fly target
+    this._input.hasTarget = t.hasTarget;
+    this._input.targetX   = t.targetX;
+    this._input.targetY   = t.targetY;
   }
 
   _handleKeyDown(e) {
