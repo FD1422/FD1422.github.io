@@ -1185,15 +1185,12 @@ class UpgradeSystem {
     ctx.font = '13px Orbitron, sans-serif';
     ctx.fillText('Choose 1 upgrade', W / 2, H / 2 - 130);
 
-    // Cards
-    const cardW = Math.min(200, (W - 80) / 3);
-    const cardH = 150;
-    const totalW = this.choices.length * cardW + (this.choices.length - 1) * 20;
-    const startX = W / 2 - totalW / 2;
+    // Cards — vertical stack on narrow screens (mobile), horizontal otherwise
+    const { vertical, cardW, cardH, gap, startX, startY } = this._cardLayout(W, H);
 
     this.choices.forEach((u, i) => {
-      const cx = startX + i * (cardW + 20);
-      const cy = H / 2 - 90;
+      const cx = vertical ? startX : startX + i * (cardW + gap);
+      const cy = vertical ? startY + i * (cardH + gap) : startY;
       const hover = this._selected === i;
 
       ctx.fillStyle = hover ? 'rgba(255,215,0,0.18)' : 'rgba(0,40,80,0.8)';
@@ -1219,38 +1216,50 @@ class UpgradeSystem {
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Icon
-      ctx.font = '28px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(u.icon, cx + cardW / 2, cy + 38);
-
-      // Label
-      ctx.fillStyle = hover ? '#ffd700' : '#00ffff';
-      ctx.font = 'bold 12px Orbitron, sans-serif';
-      ctx.fillText(u.label, cx + cardW / 2, cy + 68);
-
-      // Desc
-      ctx.fillStyle = '#aaaacc';
-      ctx.font = '10px Exo 2, sans-serif';
-      const words = u.desc.split(' ');
-      let line = '';
-      let lineY = cy + 88;
-      for (const word of words) {
-        const test = line + (line ? ' ' : '') + word;
-        if (ctx.measureText(test).width > cardW - 20 && line) {
-          ctx.fillText(line, cx + cardW / 2, lineY);
-          line = word;
-          lineY += 16;
-        } else {
-          line = test;
+      if (vertical) {
+        // Compact horizontal layout inside card: icon left, text right
+        ctx.font = '26px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(u.icon, cx + 36, cy + cardH / 2 + 9);
+        ctx.fillStyle = hover ? '#ffd700' : '#00ffff';
+        ctx.font = `bold ${Math.round(cardW * 0.055)}px Orbitron, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText(u.label, cx + 64, cy + 30);
+        ctx.fillStyle = '#aaaacc';
+        ctx.font = `${Math.round(cardW * 0.042)}px Exo 2, sans-serif`;
+        ctx.fillText(u.desc.length > 48 ? u.desc.slice(0, 46) + '…' : u.desc, cx + 64, cy + 52);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '11px Orbitron, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`[${i + 1}]`, cx + cardW - 10, cy + cardH - 10);
+      } else {
+        // Original vertical layout inside card
+        ctx.font = '28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(u.icon, cx + cardW / 2, cy + 38);
+        ctx.fillStyle = hover ? '#ffd700' : '#00ffff';
+        ctx.font = 'bold 12px Orbitron, sans-serif';
+        ctx.fillText(u.label, cx + cardW / 2, cy + 68);
+        ctx.fillStyle = '#aaaacc';
+        ctx.font = '10px Exo 2, sans-serif';
+        const words = u.desc.split(' ');
+        let line = '';
+        let lineY = cy + 88;
+        for (const word of words) {
+          const test = line + (line ? ' ' : '') + word;
+          if (ctx.measureText(test).width > cardW - 20 && line) {
+            ctx.fillText(line, cx + cardW / 2, lineY);
+            line = word;
+            lineY += 16;
+          } else {
+            line = test;
+          }
         }
+        if (line) ctx.fillText(line, cx + cardW / 2, lineY);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '11px Orbitron, sans-serif';
+        ctx.fillText(`[${i + 1}]`, cx + cardW / 2, cy + cardH - 10);
       }
-      if (line) ctx.fillText(line, cx + cardW / 2, lineY);
-
-      // Key hint
-      ctx.fillStyle = '#ffd700';
-      ctx.font = '11px Orbitron, sans-serif';
-      ctx.fillText(`[${i + 1}]`, cx + cardW / 2, cy + cardH - 10);
     });
 
     ctx.restore();
@@ -1258,16 +1267,24 @@ class UpgradeSystem {
 
   setHover(index) { this._selected = index; }
 
+  _cardLayout(W, H) {
+    const vertical = W < 480;
+    const cardW = vertical ? Math.min(320, W - 40) : Math.min(200, (W - 80) / 3);
+    const cardH = vertical ? 90 : 150;
+    const gap = vertical ? 12 : 20;
+    const totalW = vertical ? cardW : this.choices.length * cardW + (this.choices.length - 1) * gap;
+    const totalH = vertical ? this.choices.length * cardH + (this.choices.length - 1) * gap : cardH;
+    const startX = W / 2 - totalW / 2;
+    const startY = vertical ? H / 2 - totalH / 2 : H / 2 - 90;
+    return { vertical, cardW, cardH, gap, startX, startY };
+  }
+
   handleClick(mx, my, W, H, ship) {
     if (!this.visible) return null;
-    const cardW = Math.min(200, (W - 80) / 3);
-    const cardH = 150;
-    const totalW = this.choices.length * cardW + (this.choices.length - 1) * 20;
-    const startX = W / 2 - totalW / 2;
-    const cy = H / 2 - 90;
-
+    const { vertical, cardW, cardH, gap, startX, startY } = this._cardLayout(W, H);
     for (let i = 0; i < this.choices.length; i++) {
-      const cx = startX + i * (cardW + 20);
+      const cx = vertical ? startX : startX + i * (cardW + gap);
+      const cy = vertical ? startY + i * (cardH + gap) : startY;
       if (mx >= cx && mx <= cx + cardW && my >= cy && my <= cy + cardH) {
         return this.selectUpgrade(i, ship);
       }
@@ -1277,15 +1294,11 @@ class UpgradeSystem {
 
   handleHover(mx, my, W, H) {
     if (!this.visible) return;
-    const cardW = Math.min(200, (W - 80) / 3);
-    const cardH = 150;
-    const totalW = this.choices.length * cardW + (this.choices.length - 1) * 20;
-    const startX = W / 2 - totalW / 2;
-    const cy = H / 2 - 90;
-
+    const { vertical, cardW, cardH, gap, startX, startY } = this._cardLayout(W, H);
     let found = -1;
     for (let i = 0; i < this.choices.length; i++) {
-      const cx = startX + i * (cardW + 20);
+      const cx = vertical ? startX : startX + i * (cardW + gap);
+      const cy = vertical ? startY + i * (cardH + gap) : startY;
       if (mx >= cx && mx <= cx + cardW && my >= cy && my <= cy + cardH) {
         found = i; break;
       }
@@ -1746,6 +1759,74 @@ class TouchControls {
     ctx.restore();
   }
 
+  // Pulsing tap-to-start / tap-to-restart button for touch devices
+  drawTapPrompt(ctx, label) {
+    if (!('ontouchstart' in window)) return;
+    const W = this._canvas.width;
+    const H = this._canvas.height;
+    ctx.save();
+    const pulse = 0.55 + 0.45 * Math.sin(Date.now() * 0.004);
+    const bw = Math.min(280, W * 0.72), bh = 58;
+    const bx = W / 2 - bw / 2, by = H - 100;
+    const r = 14;
+    ctx.globalAlpha = 0.45 + 0.45 * pulse;
+    ctx.fillStyle = 'rgba(0,200,255,0.18)';
+    ctx.strokeStyle = '#00d4ff';
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 18 * pulse;
+    ctx.shadowColor = '#00d4ff';
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by);
+    ctx.lineTo(bx + bw - r, by);
+    ctx.arcTo(bx + bw, by, bx + bw, by + r, r);
+    ctx.lineTo(bx + bw, by + bh - r);
+    ctx.arcTo(bx + bw, by + bh, bx + bw - r, by + bh, r);
+    ctx.lineTo(bx + r, by + bh);
+    ctx.arcTo(bx, by + bh, bx, by + bh - r, r);
+    ctx.lineTo(bx, by + r);
+    ctx.arcTo(bx, by, bx + r, by, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.globalAlpha = 0.7 + 0.3 * pulse;
+    ctx.fillStyle = '#00d4ff';
+    ctx.font = `bold ${Math.round(bw * 0.075)}px Orbitron, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, W / 2, by + bh / 2);
+    ctx.shadowBlur = 0;
+    ctx.textBaseline = 'alphabetic';
+    ctx.restore();
+  }
+
+  // Faint zone guide drawn during gameplay when joystick is idle
+  drawZoneHints(ctx) {
+    if (!('ontouchstart' in window)) return;
+    if (this._joystickActive) return;
+    const W = this._canvas.width;
+    const H = this._canvas.height;
+    ctx.save();
+    ctx.globalAlpha = 0.13;
+    // centre divider
+    ctx.strokeStyle = '#00d4ff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 8]);
+    ctx.beginPath();
+    ctx.moveTo(W / 2, H * 0.12);
+    ctx.lineTo(W / 2, H * 0.88);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // labels
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#00d4ff';
+    ctx.font = `bold ${Math.round(W * 0.033)}px Orbitron, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('MOVE', W * 0.25, H * 0.93);
+    ctx.fillStyle = '#ff8800';
+    ctx.fillText('FIRE', W * 0.75, H * 0.93);
+    ctx.restore();
+  }
+
   drawShootButton(ctx) {
     // Static shoot button (always visible on touch devices)
     if (!('ontouchstart' in window)) return;
@@ -2046,7 +2127,7 @@ class SpaceGame {
     switch (this._state) {
       case 'start':
         this._ui.drawStartScreen(this._leaderboard, this._playerName);
-        this._touch.drawShootButton(ctx);
+        this._touch.drawTapPrompt(ctx, 'TAP TO START');
         break;
 
       case 'countdown':
@@ -2085,7 +2166,7 @@ class SpaceGame {
       case 'gameover':
         this._drawParticles(ctx);
         this._ui.drawGameOver(this._score, this._waveManager.wave, this._playerName, this._leaderboard);
-        this._touch.drawShootButton(ctx);
+        this._touch.drawTapPrompt(ctx, 'TAP TO PLAY AGAIN');
         break;
     }
   }
@@ -2243,6 +2324,7 @@ class SpaceGame {
     this._ui.drawHUD(this._ship, this._score, this._waveManager.wave, this._ship.scoreMultiplier, this._waveManager.state);
 
     // Touch controls
+    this._touch.drawZoneHints(ctx);
     this._touch.draw(ctx);
     this._touch.drawShootButton(ctx);
   }
