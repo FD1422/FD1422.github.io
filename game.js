@@ -1960,6 +1960,16 @@ class SpaceGame {
     this._canvas.addEventListener('mousemove', e => this._handleMouseMove(e));
     this._canvas.addEventListener('click',     e => this._handleClick(e));
 
+    // Touch — start / gameover / upgrade screens need tap-to-confirm.
+    // TouchControls calls e.preventDefault() which suppresses 'click', so we
+    // handle non-playing states here directly via touchstart.
+    this._canvas.addEventListener('touchstart', e => {
+      if (this._state === 'start' || this._state === 'gameover' || this._state === 'upgrade') {
+        const t = e.changedTouches[0];
+        this._handleClick({ clientX: t.clientX, clientY: t.clientY });
+      }
+    }, { passive: true });
+
     // Start loop
     this._animId = requestAnimationFrame(ts => this._loop(ts));
 
