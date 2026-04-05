@@ -1560,6 +1560,17 @@ main, #main-content {
 /* ============================================================
    FOOTER
    ============================================================ */
+/* ── GUESTBOOK ───────────────────────────────── */
+.guestbook-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.08);
+}
+.guestbook-wrap .utterances { max-width: 100% !important; }
+
 .site-footer {
   position: relative;
   z-index: 1;
