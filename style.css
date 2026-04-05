@@ -1842,6 +1842,84 @@ main, #main-content {
   display: block;
 }
 
+/* ── WASD DESKTOP BUTTONS ────────────────────────── */
+.game-kb-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  user-select: none;
+}
+/* Hide on touch devices — they use the in-canvas joystick */
+@media (hover: none) and (pointer: coarse) {
+  .game-kb-controls { display: none; }
+}
+.kb-row {
+  display: flex;
+  gap: 6px;
+}
+.kb-btn {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  background: rgba(0, 10, 40, 0.85);
+  border: 1.5px solid rgba(0, 212, 255, 0.45);
+  border-radius: 10px;
+  color: #00d4ff;
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: background 0.1s, box-shadow 0.1s, transform 0.1s;
+  box-shadow: 0 0 8px rgba(0,212,255,0.15), inset 0 -3px 0 rgba(0,0,0,0.4);
+  -webkit-tap-highlight-color: transparent;
+}
+.kb-btn:hover {
+  background: rgba(0, 212, 255, 0.12);
+  box-shadow: 0 0 16px rgba(0,212,255,0.35);
+}
+.kb-btn.kb-active, .kb-btn:active {
+  background: rgba(0, 212, 255, 0.25);
+  box-shadow: 0 0 24px rgba(0,212,255,0.6);
+  transform: translateY(2px);
+  border-color: #00d4ff;
+}
+.kb-hint {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 0.45rem;
+  font-weight: 400;
+  color: rgba(0,212,255,0.5);
+  letter-spacing: 0.05em;
+}
+.kb-space {
+  width: 200px;
+  height: 46px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+/* ── iPAD / MOBILE GAME OPTIMISATION ────────────── */
+/* On tablets & phones, give the canvas more vertical room */
+@media (max-width: 1024px) {
+  .game-container {
+    aspect-ratio: 4 / 3;   /* taller canvas fits iPad better */
+    border-radius: 8px;
+  }
+}
+@media (max-width: 600px) {
+  .game-container {
+    aspect-ratio: 3 / 4;   /* portrait phones get a tall canvas */
+    border-radius: 6px;
+  }
+  #game-section { padding-left: 0.5rem; padding-right: 0.5rem; }
+}
+
 /* Multiplayer panel */
 .mp-panel { margin-top: 1.5rem; }
 .mp-panel-inner {

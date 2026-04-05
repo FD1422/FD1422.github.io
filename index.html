@@ -509,6 +509,21 @@
         <canvas id="space-game-canvas"></canvas>
       </div>
 
+      <!-- WASD desktop buttons (hidden on touch devices via CSS) -->
+      <div id="game-kb-controls" class="game-kb-controls">
+        <div class="kb-row">
+          <button class="kb-btn" data-key="w">W<span class="kb-hint">UP</span></button>
+        </div>
+        <div class="kb-row">
+          <button class="kb-btn" data-key="a">A<span class="kb-hint">LEFT</span></button>
+          <button class="kb-btn" data-key="s">S<span class="kb-hint">DOWN</span></button>
+          <button class="kb-btn" data-key="d">D<span class="kb-hint">RIGHT</span></button>
+        </div>
+        <div class="kb-row">
+          <button class="kb-btn kb-space" data-key=" ">SPACE &mdash; FIRE</button>
+        </div>
+      </div>
+
       <!-- Multiplayer connection panel (hidden by default) -->
       <div id="mp-panel" class="mp-panel hidden">
         <div class="mp-panel-inner">
@@ -626,6 +641,20 @@
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       });
     }
+
+    // WASD on-screen buttons — fire real keyboard events so game.js picks them up
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.kb-btn').forEach(btn => {
+        const key = btn.dataset.key;
+        const fire = type => window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true, cancelable: true }));
+        btn.addEventListener('mousedown',  e => { e.preventDefault(); fire('keydown'); btn.classList.add('kb-active'); });
+        btn.addEventListener('mouseup',    e => { fire('keyup');   btn.classList.remove('kb-active'); });
+        btn.addEventListener('mouseleave', e => { fire('keyup');   btn.classList.remove('kb-active'); });
+        // Also support touch on the buttons themselves (iPad with keyboard overlay)
+        btn.addEventListener('touchstart', e => { e.preventDefault(); fire('keydown'); btn.classList.add('kb-active'); }, { passive: false });
+        btn.addEventListener('touchend',   e => { e.preventDefault(); fire('keyup');   btn.classList.remove('kb-active'); }, { passive: false });
+      });
+    });
   </script>
   <script src="script.js"></script>
   <script src="game.js"></script>
