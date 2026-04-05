@@ -61,6 +61,33 @@ body {
 /* ── HIDDEN UTILITY ─────────────────────────────── */
 .hidden { display: none !important; }
 
+/* ── VERSION BADGE ───────────────────────────────── */
+.version-badge {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(0, 5, 20, 0.75);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.62rem;
+  color: rgba(0, 212, 255, 0.8);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0,212,255,0.1);
+}
+.version-icon {
+  font-size: 0.5rem;
+  color: #00d4ff;
+  opacity: 0.7;
+}
+
 /* ============================================================
    CUSTOM SCROLLBAR
    ============================================================ */

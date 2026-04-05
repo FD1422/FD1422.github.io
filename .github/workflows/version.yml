@@ -1,0 +1,31 @@
+name: Update version
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'version.json'   # prevent infinite loop
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so commit count is accurate
+
+      - name: Generate version.json
+        run: |
+          SHA=$(git rev-parse HEAD)
+          SHORT="${SHA: -4}"
+          BUILD=$(git rev-list --count HEAD)
+          echo "{\"build\":$BUILD,\"commit\":\"$SHORT\",\"sha\":\"$SHA\"}" > version.json
+
+      - name: Commit and push
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add version.json
+          git diff --staged --quiet || (git commit -m "chore: update version [skip ci]" && git push)
