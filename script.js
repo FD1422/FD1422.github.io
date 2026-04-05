@@ -237,34 +237,44 @@ injectStyle('blink-anim', `
 `);
 
 (function initCrawlSkip() {
-  /* Support both the original id used in the HTML and common class names */
   const crawl = $('#crawl-wrapper') || $('#crawl-container') || $('.crawl-container');
   const main  = $('#main-content') || $('main') || $('.main-content');
-
   if (!crawl) return;
 
-  /* Add a "click to skip" hint */
-  const hint = document.createElement('div');
-  hint.textContent = '[ Click anywhere · skip crawl ]';
-  Object.assign(hint.style, {
-    position:   'absolute',
-    bottom:     '22px',
-    left:       '50%',
-    transform:  'translateX(-50%)',
-    color:      'rgba(255,200,0,0.72)',
-    fontSize:   '0.82rem',
-    fontFamily: '"Orbitron","Share Tech Mono",monospace',
-    letterSpacing: '0.12em',
-    animation:  'ssBlink 1.5s ease-in-out infinite',
-    zIndex:     '10',
-    whiteSpace: 'nowrap',
-    pointerEvents: 'none',
-  });
-  if (getComputedStyle(crawl).position === 'static') crawl.style.position = 'relative';
-  crawl.appendChild(hint);
+  // Crawl CSS animation duration (must match CSS: 75s for #crawl-stage)
+  const CRAWL_DURATION_MS = 75000;
+  const startTime = Date.now();
+  let progressRaf = null;
+  let finished = false;
+
+  // Progress bar elements
+  const progressEl  = document.getElementById('crawl-progress');
+  const fillEl       = document.getElementById('crawl-progress-fill');
+  const pctEl        = document.getElementById('crawl-progress-pct');
+
+  function updateProgress() {
+    if (finished) return;
+    const elapsed = Date.now() - startTime;
+    const pct = Math.min(100, Math.round((elapsed / CRAWL_DURATION_MS) * 100));
+    if (fillEl) fillEl.style.height = pct + '%';
+    if (pctEl)  pctEl.textContent   = pct + '%';
+    if (pct < 100) progressRaf = requestAnimationFrame(updateProgress);
+    else revealMain();
+  }
+  progressRaf = requestAnimationFrame(updateProgress);
+
+  // Clicking the progress indicator skips immediately
+  if (progressEl) {
+    progressEl.addEventListener('click', revealMain, { once: true });
+  }
 
   function revealMain() {
-    clearTimeout(autoTimer);
+    if (finished) return;
+    finished = true;
+    cancelAnimationFrame(progressRaf);
+    if (fillEl) fillEl.style.height = '100%';
+    if (pctEl)  pctEl.textContent   = '100%';
+
     crawl.style.transition = 'opacity 1.1s ease, transform 1.1s ease';
     crawl.style.opacity    = '0';
     crawl.style.transform  = (crawl.style.transform || '') + ' scale(0.97)';
@@ -279,19 +289,13 @@ injectStyle('blink-anim', `
         requestAnimationFrame(() => requestAnimationFrame(() => { main.style.opacity = '1'; }));
       }
 
-      // Kick off scroll-reveal observer and typing effect
       triggerEntryAnimations();
       initTypingEffect();
     }, 1150);
   }
 
-  /* expose for any existing inline onclick="skipCrawl()" in the HTML */
+  /* expose for inline onclick="skipCrawl()" on the Skip button */
   window.skipCrawl = revealMain;
-
-  crawl.addEventListener('click',     revealMain, { once: true });
-  crawl.addEventListener('touchstart', revealMain, { once: true, passive: true });
-
-  const autoTimer = setTimeout(revealMain, 8000);
 }());
 
 

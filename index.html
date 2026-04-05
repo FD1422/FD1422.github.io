@@ -90,9 +90,17 @@
         </p>
       </div>
     </div>
+    <div id="crawl-progress">
+      <div id="crawl-progress-track">
+        <div id="crawl-progress-fill"></div>
+      </div>
+      <span id="crawl-progress-pct">0%</span>
+      <span id="crawl-progress-label">SKIP</span>
+    </div>
     <div id="crawl-skip">
-      <button onclick="skipCrawl()">
-        <i class="fa-solid fa-forward-fast"></i> Skip Intro
+      <button onclick="skipCrawl()" id="crawl-skip-btn">
+        <i class="fa-solid fa-forward-fast"></i>
+        Skip Intro
       </button>
     </div>
   </section>
@@ -450,6 +458,88 @@
       </div>
     </div>
 
+    <!-- ── LIGHTSABER DIVIDER ─────────────────── -->
+    <div class="saber-divider" aria-hidden="true">
+      <div class="saber saber-blue">
+        <div class="saber-handle"></div>
+        <div class="saber-blade saber-blade-blue"></div>
+      </div>
+      <span class="saber-label">SPACE BATTLE</span>
+      <div class="saber saber-red flip">
+        <div class="saber-blade saber-blade-red"></div>
+        <div class="saber-handle"></div>
+      </div>
+    </div>
+
+    <!-- ── SPACE GAME ───────────────────────── -->
+    <section id="game-section" class="section">
+      <h2 class="section-title">
+        <i class="fa-solid fa-gamepad"></i>
+        Galaxy Defender
+      </h2>
+      <p class="section-intro">
+        The Empire has launched an attack! Defend the galaxy, pilot.
+        Play solo or invite a friend for co-op multiplayer.
+      </p>
+
+      <!-- Mode selector -->
+      <div id="game-mode-selector" class="game-mode-selector">
+        <button class="game-mode-btn active" data-mode="single" onclick="selectGameMode('single')">
+          <i class="fa-solid fa-user"></i>
+          <span>Solo Mission</span>
+          <small>Play in your browser, no server needed</small>
+        </button>
+        <button class="game-mode-btn" data-mode="multi" onclick="selectGameMode('multi')">
+          <i class="fa-solid fa-users"></i>
+          <span>Co-op Multiplayer</span>
+          <small>2 players, requires game server</small>
+        </button>
+      </div>
+
+      <!-- Game canvas container -->
+      <div id="game-container" class="game-container">
+        <canvas id="space-game-canvas"></canvas>
+      </div>
+
+      <!-- Multiplayer connection panel (hidden by default) -->
+      <div id="mp-panel" class="mp-panel hidden">
+        <div class="mp-panel-inner">
+          <h3><i class="fa-solid fa-satellite-dish"></i> Multiplayer Connection</h3>
+          <p class="mp-subtitle">Enter a room code or create a new one to play with a friend.</p>
+
+          <div class="mp-server-note">
+            <i class="fa-solid fa-circle-info"></i>
+            Multiplayer requires a game server. See
+            <a href="https://github.com/FD1422/FD1422.github.io/tree/main/backend" target="_blank">backend/README.md</a>
+            for setup instructions.
+          </div>
+
+          <div class="mp-fields">
+            <div class="mp-field">
+              <label>Server URL</label>
+              <input type="text" id="mp-server-url" placeholder="ws://your-server:8765" value="ws://localhost:8765" />
+            </div>
+            <div class="mp-field">
+              <label>Your Name</label>
+              <input type="text" id="mp-player-name" placeholder="Fedya" maxlength="16" />
+            </div>
+            <div class="mp-field">
+              <label>Room Code</label>
+              <div class="mp-room-row">
+                <input type="text" id="mp-room-code" placeholder="STAR" maxlength="4" style="text-transform:uppercase" />
+                <button onclick="generateRoomCode()" class="btn-small">Random</button>
+              </div>
+            </div>
+          </div>
+          <div class="mp-actions">
+            <button class="btn-cosmic" onclick="joinMultiplayer()">
+              <i class="fa-solid fa-rocket"></i> Join / Create Room
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── FOOTER ─────────────────────────────── -->
     <footer class="site-footer">
       <div class="footer-inner">
@@ -487,5 +577,71 @@
   </main><!-- /main-content -->
 
   <script src="script.js"></script>
+  <script src="game.js"></script>
+  <script src="multiplayer.js"></script>
+  <script>
+    // Game mode selection
+    let currentGameMode = 'single';
+    let gameInstance = null;
+    let mpManager = null;
+
+    function selectGameMode(mode) {
+      currentGameMode = mode;
+      document.querySelectorAll('.game-mode-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+      const mpPanel = document.getElementById('mp-panel');
+      if (mode === 'multi') {
+        mpPanel.classList.remove('hidden');
+      } else {
+        mpPanel.classList.add('hidden');
+        initGame('single');
+      }
+    }
+
+    function initGame(mode) {
+      if (gameInstance) { gameInstance.destroy(); gameInstance = null; }
+      gameInstance = new SpaceGame('space-game-canvas', { mode });
+    }
+
+    function joinMultiplayer() {
+      const serverUrl = document.getElementById('mp-server-url').value.trim();
+      const name = document.getElementById('mp-player-name').value.trim() || 'Pilot';
+      const room = document.getElementById('mp-room-code').value.trim().toUpperCase() || generateRoomCode();
+      if (gameInstance) { gameInstance.destroy(); gameInstance = null; }
+      gameInstance = new SpaceGame('space-game-canvas', { mode: 'multi' });
+      // MultiplayerManager.init() sets up the client internally; retrieve it after
+      MultiplayerManager.init(gameInstance, serverUrl);
+      mpManager = MultiplayerManager.getClient();
+      if (mpManager) {
+        mpManager.connect(room, name);
+      } else {
+        // Fallback: construct client directly
+        mpManager = new MultiplayerClient(gameInstance, serverUrl);
+        mpManager.connect(room, name);
+      }
+    }
+
+    function generateRoomCode() {
+      const code = MultiplayerClient.generateRoomCode();
+      const el = document.getElementById('mp-room-code');
+      if (el) el.value = code;
+      return code;
+    }
+
+    // Auto-init single player when game section scrolls into view
+    const gameObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting && !gameInstance && currentGameMode === 'single') {
+          initGame('single');
+          gameObserver.disconnect();
+        }
+      });
+    }, { threshold: 0.3 });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const gc = document.getElementById('game-container');
+      if (gc) gameObserver.observe(gc);
+    });
+  </script>
 </body>
 </html>

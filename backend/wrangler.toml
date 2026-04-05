@@ -1,0 +1,27 @@
+name            = "fedya-galaxy-mp"
+main            = "worker.js"
+compatibility_date = "2024-09-23"
+
+# Durable Objects — one instance per room
+[[durable_objects.bindings]]
+name       = "GAME_ROOM"
+class_name = "GameRoom"
+
+[[migrations]]
+tag              = "v1"
+new_classes      = ["GameRoom"]
+
+# KV namespace for leaderboard
+# Create with: wrangler kv:namespace create LEADERBOARD_KV
+# Then paste the id from the output into the line below.
+[[kv_namespaces]]
+binding = "LEADERBOARD_KV"
+id      = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+[vars]
+# No secrets needed — all config is in wrangler.toml / KV
+
+# Optional: route to a custom domain
+# [[routes]]
+# pattern = "mp.yourdomain.com/*"
+# zone_name = "yourdomain.com"

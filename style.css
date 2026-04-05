@@ -1694,3 +1694,205 @@ main, #main-content {
   #crawl-stage { animation: none; position: static; transform: none; }
   #crawl-wrapper { overflow-y: auto; perspective: none; }
 }
+
+/* ============================================================
+   OPENING CRAWL — IMPROVEMENTS
+   ============================================================ */
+
+/* Larger crawl text */
+#crawl-text p {
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem) !important;
+  line-height: 1.85 !important;
+  margin-bottom: 1.4em !important;
+}
+#crawl-text .crawl-logo {
+  font-size: clamp(1.4rem, 3vw, 2rem) !important;
+  letter-spacing: 0.2em !important;
+}
+.crawl-episode {
+  font-size: clamp(1.2rem, 2.5vw, 1.7rem) !important;
+}
+.crawl-title {
+  font-size: clamp(2.2rem, 5vw, 4rem) !important;
+  margin-bottom: 1.5em !important;
+}
+
+/* Bigger skip button */
+#crawl-skip-btn, #crawl-skip button {
+  font-size: 1.15rem !important;
+  padding: 0.9rem 2.2rem !important;
+  border-radius: 6px !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* Progress indicator on the right side */
+#crawl-progress {
+  position: fixed;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+#crawl-progress:hover #crawl-progress-pct { color: #ffd700; }
+#crawl-progress-track {
+  width: 6px;
+  height: 120px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+#crawl-progress-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(0deg, #ffd700, #00d4ff);
+  border-radius: 3px;
+  transition: height 0.5s linear;
+}
+#crawl-progress-pct {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  color: #00d4ff;
+  font-weight: 700;
+  text-shadow: 0 0 8px #00d4ff;
+}
+#crawl-progress-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.15em;
+}
+
+/* ============================================================
+   GAME SECTION
+   ============================================================ */
+
+.game-mode-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.game-mode-btn {
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+  background: rgba(0, 10, 40, 0.7);
+  border: 2px solid rgba(0, 212, 255, 0.25);
+  border-radius: 12px;
+  color: #e8e8ff;
+  padding: 1.2rem 1.5rem;
+  cursor: pointer;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.3s ease;
+}
+.game-mode-btn i { font-size: 1.6rem; color: #00d4ff; margin-bottom: 0.3rem; }
+.game-mode-btn span { font-weight: 700; font-size: 0.95rem; }
+.game-mode-btn small { color: rgba(200,200,255,0.55); font-family: 'Exo 2', sans-serif; font-size: 0.78rem; font-weight: 300; }
+.game-mode-btn:hover, .game-mode-btn.active {
+  border-color: #00d4ff;
+  background: rgba(0, 30, 70, 0.85);
+  box-shadow: 0 0 20px rgba(0,212,255,0.25), inset 0 0 20px rgba(0,212,255,0.05);
+  transform: translateY(-3px);
+}
+.game-mode-btn.active { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.25); }
+.game-mode-btn.active i { color: #ffd700; }
+
+.game-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  aspect-ratio: 16 / 10;
+  background: #000010;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 40px rgba(0,212,255,0.15), inset 0 0 60px rgba(0,0,20,0.8);
+  overflow: hidden;
+  position: relative;
+}
+#space-game-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Multiplayer panel */
+.mp-panel { margin-top: 1.5rem; }
+.mp-panel-inner {
+  background: rgba(0,10,40,0.85);
+  border: 1px solid rgba(0,212,255,0.3);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+.mp-panel-inner h3 {
+  font-family: 'Orbitron', monospace;
+  color: #00d4ff;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 10px #00d4ff88;
+}
+.mp-subtitle { color: rgba(200,200,255,0.6); font-size: 0.88rem; margin-bottom: 1.2rem; }
+.mp-server-note {
+  background: rgba(255,215,0,0.06);
+  border: 1px solid rgba(255,215,0,0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  color: rgba(255,215,0,0.8);
+  margin-bottom: 1.2rem;
+}
+.mp-server-note a { color: #ffd700; }
+.mp-fields { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.2rem; }
+.mp-field label {
+  display: block;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.7rem;
+  color: #00d4ff;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.3rem;
+}
+.mp-field input {
+  width: 100%;
+  background: rgba(0,0,20,0.6);
+  border: 1px solid rgba(0,212,255,0.3);
+  border-radius: 6px;
+  color: #e8e8ff;
+  padding: 0.6rem 0.9rem;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.mp-field input:focus { border-color: #00d4ff; box-shadow: 0 0 10px rgba(0,212,255,0.2); }
+.mp-room-row { display: flex; gap: 0.5rem; }
+.mp-room-row input { flex: 1; }
+.btn-small {
+  background: transparent;
+  border: 1px solid rgba(0,212,255,0.4);
+  border-radius: 6px;
+  color: #00d4ff;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-small:hover { background: rgba(0,212,255,0.1); }
+.mp-actions { text-align: center; }
