@@ -1966,6 +1966,13 @@ class SpaceGame {
     this.emit('game:ready', {});
   }
 
+  _isCanvasVisible() {
+    if (!this._canvas) return false;
+    const rect = this._canvas.getBoundingClientRect();
+    return rect.bottom > 0 && rect.top < window.innerHeight &&
+           rect.right > 0  && rect.left < window.innerWidth;
+  }
+
   _resizeCanvas() {
     if (!this._canvas) return;
     const parent = this._canvas.parentElement || document.body;
@@ -2353,11 +2360,18 @@ class SpaceGame {
   _handleKeyDown(e) {
     this._keys[e.key] = true;
 
+    // Prevent page scroll for game keys only when canvas is in the viewport
+    const GAME_KEYS = new Set([
+      'ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+      'w','a','s','d','W','A','S','D',' ','p','P',
+      '1','2','3','Enter'
+    ]);
+    if (GAME_KEYS.has(e.key) && this._isCanvasVisible()) e.preventDefault();
+
     // Global shortcuts
     if (e.key === 'p' || e.key === 'P') {
       if (this._state === 'playing') this.pause();
       else if (this._state === 'paused') this.resume();
-      e.preventDefault();
     }
 
     if (e.key === 'Enter') {
@@ -2371,7 +2385,6 @@ class SpaceGame {
     if (e.key === ' ') {
       if (this._state === 'start') this.start(this._playerName);
       if (this._state === 'gameover') this._state = 'start';
-      e.preventDefault();
     }
 
     // Upgrade selection: 1, 2, 3
